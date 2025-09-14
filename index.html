@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Galería colaborativa de jugadas épicas en Wild Rift. Sube tus mejores momentos y forma parte de la comunidad UPDT.">
+    <title>UPDT - Jugadas Épicas</title>
+    <!-- Firebase scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-updt.js"></script>
+    
+    <!-- Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body {
+        background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+        font-family: 'Orbitron', sans-serif;
+      }
+      .wildrift-header {
+        text-align: center;
+        padding: 2rem 0 1rem 0;
+      }
+      .wildrift-logo {
+        max-width: 120px;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 0 24px 4px #1e90ff, 0 4px 6px rgba(0,0,0,0.2);
+        background: #222;
+      }
+      .wildrift-title {
+        color: #e7c873;
+        text-shadow: 0 2px 8px #1e90ff, 0 0 2px #000;
+        letter-spacing: 2px;
+      }
+      .wildrift-desc {
+        color: #00ffe7;
+        text-shadow: 0 1px 4px #000;
+      }
+      .wildrift-section {
+        background: rgba(10,10,10,0.85);
+        border-radius: 1rem;
+        border: 1.5px solid #1e90ff;
+        box-shadow: 0 2px 12px 0 rgba(30,144,255,0.10);
+        margin-bottom: 2rem;
+        padding: 1.5rem 1rem;
+      }
+      .drive {
+        width: 100%;
+        height: 400px;
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 24px 0 #1e90ff, 0 4px 6px rgba(0, 0, 0, 0.2);
+        background: rgba(30,144,255,0.05);
+      }
+      .wildrift-footer {
+        background: rgba(30,144,255,0.10);
+        border-top: 2px solid #e7c873;
+        text-align: center;
+        padding: 1.5rem 0 0.5rem 0;
+        color: #e7c873;
+        text-shadow: 0 1px 2px #000;
+      }
+      @media (max-width: 768px) {
+        .wildrift-header {
+          padding: 1rem 0 0.5rem 0;
+        }
+        .wildrift-logo {
+          max-width: 80px;
+        }
+        .drive {
+          height: 220px;
+        }
+        .wildrift-section {
+          padding: 1rem 0.5rem;
+        }
+      }
+    </style>
+</head>
+<body>
+  <!-- Botón modo oscuro -->
+  <button id="toggle-dark" class="btn btn-secondary position-fixed end-0 m-3" style="z-index:999;top:1rem;">🌙</button>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-primary mb-4">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#">UPDT</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item"><a class="nav-link" href="#galeria">Galería</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#miembros">Miembros</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#consejos">Consejos</a></li>
+                        <li class="nav-item"><a class="btn btn-primary ms-2" href="#subir">Subir</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <header class="wildrift-header container">
+            <img class="wildrift-logo" src="https://yt3.googleusercontent.com/QfLP-RETsQDoO0h4ciTK70oAoblgcmBCjbd3Bq2TCfkLtGlSpH9d1kpD8491VUlohFnG-aQYyu8=s900-c-k-c0x00ffffff-no-rj" alt="Logo del equipo UPDT" loading="lazy">
+            <h1 class="wildrift-title">UPDT - Jugadas Épicas</h1>
+            <p class="wildrift-desc">Galería colaborativa de jugadas increíbles en Wild Rift</p>
+        </header>
+
+    <main class="container">
+
+        <!-- Top 3 miembros interactivo -->
+        <section id="ranking" class="wildrift-section">
+          <div class="mb-3">
+            <h2 class="fw-bold">Top 3 Miembros</h2>
+            <h3 class="fw-normal text-info">Vota por tu favorito (1 vez al día)</h3>
+          </div>
+          <div class="row row-cols-1 row-cols-md-3 g-3" id="top-miembros">
+            <!-- Cards generadas por JS -->
+          </div>
+        </section>
+
+
+        <!-- Agenda de eventos -->
+        <section id="agenda" class="wildrift-section">
+          <div class="mb-3">
+            <h2 class="fw-bold">Agenda de Eventos</h2>
+            <h3 class="fw-normal text-info">Próximos torneos y entrenamientos</h3>
+          </div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item bg-transparent text-light">15/09/2025 - Torneo semanal UPDT</li>
+            <li class="list-group-item bg-transparent text-light">20/09/2025 - Entrenamiento de equipo</li>
+            <li class="list-group-item bg-transparent text-light">25/09/2025 - Análisis de parches y estrategias</li>
+          </ul>
+        </section>
+
+        <!-- Guías y builds -->
+        <section id="guias" class="wildrift-section">
+          <div class="mb-3">
+            <h2 class="fw-bold">Guías y Builds</h2>
+            <h3 class="fw-normal text-info">Comparte tus mejores builds y consejos</h3>
+          </div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item bg-transparent text-light">Lee Sin: <span class="text-info">Garra del merodeador, Cuchilla negra, Baile de la muerte</span></li>
+            <li class="list-group-item bg-transparent text-light">Ahri: <span class="text-info">Eco de Luden, Bastón del arcángel, Sombrero mortal</span></li>
+            <li class="list-group-item bg-transparent text-light">Garen: <span class="text-info">Fuerza de trinidad, Coraza del muerto, Rostro espiritual</span></li>
+          </ul>
+        </section>
+
+        <!-- Redes sociales -->
+        <section id="redes" class="wildrift-section text-center">
+          <div class="mb-3">
+            <h2 class="fw-bold">Síguenos en redes</h2>
+            <h3 class="fw-normal text-info">¡No te pierdas ninguna jugada!</h3>
+          </div>
+          <a href="https://instagram.com/jhonnx_2004" target="_blank" class="btn btn-outline-danger m-1">Instagram</a>
+          <a href="#" class="btn btn-outline-primary m-1">Facebook</a>
+          <a href="#" class="btn btn-outline-info m-1">Twitter/X</a>
+          <a href="#" class="btn btn-outline-success m-1">TikTok</a>
+        </section>
+
+        <!-- Formulario de contacto/reclutamiento -->
+        <section id="contacto" class="wildrift-section">
+          <div class="mb-3">
+            <h2 class="fw-bold">Únete al equipo</h2>
+            <h3 class="fw-normal text-info">¿Quieres ser parte de UPDT?</h3>
+          </div>
+          <form>
+            <div class="mb-3">
+              <input type="text" class="form-control" placeholder="Tu nombre de invocador" required>
+            </div>
+            <div class="mb-3">
+              <input type="email" class="form-control" placeholder="Tu correo electrónico" required>
+            </div>
+            <div class="mb-3">
+              <textarea class="form-control" rows="2" placeholder="¿Por qué quieres unirte?" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+          </form>
+        </section>
+
+                <section id="galeria" class="wildrift-section">
+                    <div class="mb-3">
+                        <h2 class="fw-bold">Galería Automática</h2>
+                        <h3 class="fw-normal text-info">Sube imágenes o videos desde tu celular</h3>
+                    </div>
+                    <iframe class="drive" src="https://drive.google.com/embeddedfolderview?id=1UCHu8ckYJuMMsB9qUnM6oXvstleDpk0Q#grid" title="Galería de jugadas UPDT"></iframe>
+                </section>
+
+                <section id="miembros" class="wildrift-section">
+                    <div class="mb-3">
+                        <h2 class="fw-bold">Miembros del UPDT</h2>
+                        <h3 class="fw-normal text-info">Los que lo hacen posible</h3>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent text-light"><strong>shinji#eva01</strong> – Toplaner Y Support estratega, IG:jhonnx_2004</li>
+                        <li class="list-group-item bg-transparent text-light"><strong>ABASHTHET#202</strong> – Midlaner Y Jungla imparable, IG:thiago_77e</li>
+                        <li class="list-group-item bg-transparent text-light"><strong>NoUlteogord4s#UPDT</strong> – Jungla Y Support letal, IG:oscar.paezceron</li>
+                        <li class="list-group-item bg-transparent text-light"><strong>Æsir BLOODAXE</strong> – BotLane agresivo, IG:jeffersonespinosaorozco</li>
+                        <li class="list-group-item bg-transparent text-light"><strong>UPDT LEOOO7#1203</strong> – Jungla maestro, IG:leandrom007</li>
+                        <li class="list-group-item bg-transparent text-light"><strong>Dark Star#UPDT</strong> – Botlane y Toplaner insano, IG:dark_star_98x</li>
+                    </ul>
+                </section>
+
+                <section id="consejos" class="wildrift-section">
+                    <div class="mb-3">
+                        <h2 class="fw-bold">Consejos del Equipo</h2>
+                        <h3 class="fw-normal text-info">Tips y estrategias</h3>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent text-light">😈 Aprovecha el nuevo sistema de runas: adapta tu build según el rival y el meta.</li>
+                        <li class="list-group-item bg-transparent text-light">🗺️ Usa el ping inteligente para coordinar emboscadas y rotaciones rápidas.</li>
+                        <li class="list-group-item bg-transparent text-light">🦅 Controla los nuevos objetivos neutrales para obtener ventajas globales.</li>
+                        <li class="list-group-item bg-transparent text-light">⚡ Prioriza la movilidad: campeones con desplazamientos dominan el meta actual.</li>
+                        <li class="list-group-item bg-transparent text-light">🛡️ Los supports  deben priorizar vision en ciertas zonas del mapa ¡aprovéchalos para visión profunda!</li>
+                        <li class="list-group-item bg-transparent text-light">😇 Comunica los enfriamientos de summoners y definitivas en el chat rápido.</li>
+                        <li class="list-group-item bg-transparent text-light">🏆 Recuerda: la macro (rotaciones y presión de mapa) gana más partidas que el KDA.</li>
+                    </ul>
+                </section>
+
+                <section id="subir" class="wildrift-section">
+                    <div class="mb-3">
+                        <h2 class="fw-bold">Sube tus jugadas</h2>
+                        <h3 class="fw-normal text-info">Usa este enlace desde tu celular</h3>
+                    </div>
+                    <a href="https://drive.google.com/drive/folders/1UCHu8ckYJuMMsB9qUnM6oXvstleDpk0Q" target="_blank" rel="noopener noreferrer" class="btn btn-success">📂 Subir a Google Drive</a>
+                </section>
+    </main>
+
+        <footer class="wildrift-footer">
+            <small>
+                <a href="#" class="text-decoration-none text-warning">UPDT</a> •
+                <a href="https://instagram.com/jhonnx_2004" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-info">IG:jhonnx_2004</a>
+            </small>
+        </footer>
+
+        <!-- Bootstrap 5 JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+    <script>
+    // Modo oscuro/tema personalizable
+    const btnDark = document.getElementById('toggle-dark');
+    btnDark.addEventListener('click', () => {
+      document.body.classList.toggle('bg-dark');
+      document.body.classList.toggle('text-light');
+      btnDark.textContent = document.body.classList.contains('bg-dark') ? '☀️' : '🌙';
+    });
+
+    // Top 3 miembros con votos persistentes (1 vez al día)
+    const miembros = [
+      { nombre: 'shinji#eva01', rol: 'Toplaner/Support', campeon: 'Garen' },
+      { nombre: 'ABASHTHET#202', rol: 'Midlaner/Jungla', campeon: 'Ahri' },
+      { nombre: 'NoUlteogord4s#UPDT', rol: 'Jungla/Support', campeon: 'Lee Sin' },
+      { nombre: 'Æsir BLOODAXE', rol: 'BotLane', campeon: 'Jinx' },
+      { nombre: 'UPDT LEOOO7#1203', rol: 'Jungla', campeon: 'Vi' },
+      { nombre: 'Dark Star#UPDT', rol: 'Botlane/Toplaner', campeon: 'Darius' },
+      { nombre: 'UPDT KENNY#777', rol: 'Midlaner', campeon: 'Zed' },
+      { nombre: 'UPDT SANTI#999', rol: 'Support', campeon: 'Thresh' },
+      { nombre: 'UPDT LUIS#321', rol: 'ADC', campeon: 'Jhin' },
+      { nombre: 'UPDT MARIO#456', rol: 'Toplaner', campeon: 'Camille' }
+    ];
+    // Configuración de votos y reinicio
+  let votos = {};
+  let lastReset = null;
+  let winnerDay = null;
+    const RESET_DAYS = 90; // 3 meses
+    const WINNER_DAY = 1; // 1 día
+    // Calcular fecha de reinicio
+    function getNextResetDate() {
+      if (!lastReset) {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        lastReset = now.toISOString();
+        localStorage.setItem('updt_lastreset', lastReset);
+      }
+      const last = new Date(lastReset);
+      last.setHours(0,0,0,0);
+      const next = new Date(last);
+      next.setDate(last.getDate() + RESET_DAYS);
+      return next;
+    }
+    function getDaysLeft() {
+      const now = new Date();
+      const next = getNextResetDate();
+      return Math.max(0, Math.ceil((next - now) / (1000*60*60*24)));
+    }
+    function getTopN(n) {
+      return miembros
+        .map(m => ({...m, votos: votos[m.nombre] || 0}))
+        .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
+        .slice(0, n);
+    }
+      function getTopN(n) {
+        return miembros
+          .map(m => ({...m, votos: votos[m.nombre] || 0}))
+          .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
+          .slice(0, n);
+      }
+
+      // Sincronizar votos y reset con Firestore
+      async function syncFromFirebase() {
+        try {
+          votos = await getVotosGlobal();
+        } catch (e) {
+          votos = JSON.parse(localStorage.getItem('updt_votos') || '{}');
+        }
+        try {
+          const resetInfo = await getResetInfo();
+          lastReset = resetInfo?.lastReset || null;
+          winnerDay = resetInfo?.winnerDay || null;
+        } catch (e) {
+          lastReset = localStorage.getItem('updt_lastreset') || null;
+          winnerDay = localStorage.getItem('updt_winnerday') || null;
+        }
+        // No llamar a renderTop3 aquí, se llamará después de sync y checkReset
+      }
+      async function guardarVotosFirebase() {
+        await setVotosGlobal(votos);
+      }
+      async function guardarResetFirebase() {
+        await setResetInfo({ lastReset, winnerDay });
+      }
+    let startIdx = 0;
+    async function renderTop3() {
+      const cont = document.getElementById('top-miembros');
+      cont.innerHTML = '';
+      // Usar votos locales si no hay datos de Firebase
+      if (!votos || Object.keys(votos).length === 0) {
+        votos = JSON.parse(localStorage.getItem('updt_votos') || '{}');
+      }
+      // Ganador fijo si corresponde
+      let winner = null;
+      if (winnerDay) {
+        winner = typeof winnerDay === 'string' ? JSON.parse(winnerDay) : winnerDay;
+      }
+      let top;
+      if (winner && winner.until > Date.now()) {
+        top = [winner.miembro, ...getTopN(3).filter(m => m.nombre !== winner.miembro.nombre)].slice(0,3);
+      } else {
+        top = getTopN(3 + startIdx).slice(startIdx, startIdx+3);
+      }
+      // Flechas navegación
+      const nav = document.createElement('div');
+      nav.className = 'd-flex justify-content-between align-items-center mb-2 px-2';
+      nav.innerHTML = `
+        <button class="btn btn-ranking-arrow" id="prev-miembros" aria-label="Anterior"><svg width="28" height="28" fill="#00c3ff" viewBox="0 0 24 24"><path d="M15.5 19a1 1 0 0 1-.7-1.7l-5.1-5.3a1 1 0 0 1 0-1.4l5.1-5.3A1 1 0 1 1 16.9 7.7l-4.4 4.6 4.4 4.6A1 1 0 0 1 15.5 19z"/></svg></button>
+        <span class="text-info small fw-bold" style="letter-spacing:1px; text-shadow:0 0 6px #00c3ff99;">Reinicio en <span id="reset-contador" style="font-weight:bold;">${getDaysLeft()}</span> días</span>
+        <button class="btn btn-ranking-arrow" id="next-miembros" aria-label="Siguiente"><svg width="28" height="28" fill="#00c3ff" viewBox="0 0 24 24"><path d="M8.5 5a1 1 0 0 1 .7 1.7l-4.4 4.6 4.4 4.6A1 1 0 1 1 7.1 16.3l-5.1-5.3a1 1 0 0 1 0-1.4l5.1-5.3A1 1 0 0 1 8.5 5z" transform="scale(-1,1) translate(-24,0)"/></svg></button>
+      `;
+      cont.appendChild(nav);
+      // Mostrar top 3
+      const row = document.createElement('div');
+      row.className = 'row row-cols-1 row-cols-md-3 g-3 w-100';
+      top.forEach((m, idx) => {
+        const card = document.createElement('div');
+        card.className = 'col';
+        let crown = idx === 0 ? '<span class="crown-icon" title="Top 1"><svg width="32" height="32" viewBox="0 0 24 24" fill="#ffd700"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>' : '';
+        card.innerHTML = `
+          <div class="card bg-ranking border-3 border-primary h-100 animate__animated animate__fadeInUp position-relative ${idx===0?'shadow-lg border-warning':''}">
+            <div class="card-body text-center">
+              ${crown}
+              <h5 class="card-title mb-1 fw-bold text-ranking">${m.nombre}</h5>
+              <p class="card-text mb-2">Rol: <span class="fw-semibold">${m.rol}</span></p>
+              <p class="mb-2">Votos: <span class="text-info fw-bold fs-5">${m.votos}</span></p>
+              <p class="mb-2">Campeón favorito: <span class="fw-semibold">${m.campeon}</span></p>
+              <div class="d-flex justify-content-center align-items-center gap-2 mt-2">
+                <button class="btn btn-outline-success btn-sm votar-btn px-3" data-miembro="${m.nombre}">Votar</button>
+              </div>
+            </div>
+          </div>
+        `;
+        row.appendChild(card);
+      });
+      cont.appendChild(row);
+      // Flechas
+      document.getElementById('prev-miembros').onclick = () => {
+        if (startIdx > 0) { startIdx--; renderTop3(); }
+      };
+      document.getElementById('next-miembros').onclick = () => {
+        if (startIdx < miembros.length - 3) { startIdx++; renderTop3(); }
+      };
+      // Deshabilitar botón si ya votó hoy
+      document.querySelectorAll('.votar-btn').forEach(btn => {
+        const lastVote = localStorage.getItem('updt_lastvote_' + btn.dataset.miembro);
+        const today = new Date().toISOString().slice(0,10);
+        if(lastVote === today || (winner && winner.miembro.nombre === btn.dataset.miembro)) btn.disabled = true;
+        btn.onclick = async function() {
+          const nombre = btn.dataset.miembro;
+          votos[nombre] = (votos[nombre] || 0) + 1;
+          await guardarVotosFirebase();
+          localStorage.setItem('updt_lastvote_' + nombre, today);
+          renderTop3();
+        };
+      });
+      // Actualizar contador cada minuto
+      setTimeout(renderTop3, 60000);
+    }
+    // Reinicio de votos cada 3 meses
+    // Estilos visuales para ranking
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .bg-ranking {
+        background: linear-gradient(135deg, #0a1a2f 80%, #00c3ff22 100%);
+        border-radius: 1.2rem;
+        border-width: 2.5px !important;
+        min-height: 260px;
+        transition: box-shadow 0.3s, border-color 0.3s;
+      }
+      .bg-ranking.shadow-lg {
+        box-shadow: 0 0 32px 0 #00c3ff55, 0 0 0 4px #ffd70099;
+        border-color: #ffd700 !important;
+      }
+      .text-ranking {
+        color: #00c3ff;
+        text-shadow: 0 0 8px #00c3ff99;
+      }
+      .crown-icon {
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        filter: drop-shadow(0 0 8px #ffd700cc);
+      }
+      .btn-ranking-arrow {
+        background: #0a1a2f;
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 0 8px #00c3ff44;
+        transition: background 0.2s, box-shadow 0.2s;
+        padding: 0.3rem 0.6rem;
+      }
+      .btn-ranking-arrow:hover, .btn-ranking-arrow:focus {
+        background: #00c3ff33;
+        box-shadow: 0 0 16px #00c3ff99;
+      }
+      @media (max-width: 767px) {
+        .bg-ranking { min-height: 200px; }
+        .crown-icon { top: -12px; }
+      }
+    `;
+    document.head.appendChild(style);
+    function checkReset() {
+      const days = getDaysLeft();
+      if (days <= 0) {
+        // Guardar ganador
+        const ganador = getTopN(1)[0];
+        winnerDay = JSON.stringify({miembro: ganador, until: Date.now() + 24*60*60*1000});
+        localStorage.setItem('updt_winnerday', winnerDay);
+        // Reset votos y fecha
+        votos = {};
+        localStorage.setItem('updt_votos', JSON.stringify(votos));
+        lastReset = new Date().toISOString();
+        localStorage.setItem('updt_lastreset', lastReset);
+      } else if (winnerDay) {
+        const w = JSON.parse(winnerDay);
+        if (w.until < Date.now()) {
+          winnerDay = null;
+          localStorage.removeItem('updt_winnerday');
+        }
+      }
+      async function checkReset() {
+        const days = getDaysLeft();
+        if (days <= 0) {
+          // Guardar ganador
+          const ganador = getTopN(1)[0];
+          winnerDay = {miembro: ganador, until: Date.now() + 24*60*60*1000};
+          await guardarResetFirebase();
+          // Reset votos y fecha
+          votos = {};
+          await guardarVotosFirebase();
+          lastReset = new Date().toISOString();
+          await guardarResetFirebase();
+        } else if (winnerDay) {
+          const w = winnerDay;
+          if (w.until < Date.now()) {
+            winnerDay = null;
+            await guardarResetFirebase();
+          }
+        }
+      }
+      // Inicializar la app correctamente
+      (async function(){
+        try {
+          await syncFromFirebase();
+          await checkReset();
+        } catch (error) {
+          console.error('Error inicializando la app:', error);
+        }
+        // Siempre renderizar aunque falle la sync
+        renderTop3();
+      })();
+      setInterval(async () => {
+        try {
+          await checkReset();
+          await renderTop3();
+        } catch (error) {
+          console.error('Error actualizando datos:', error);
+        }
+      }, 60000);
+    }
+  </script>
+</body>
+</html>
