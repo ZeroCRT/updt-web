@@ -252,7 +252,7 @@
       { nombre: 'shinji#eva01', rol: 'Toplaner/Support', campeon: 'Garen' },
       { nombre: 'ABASHTHET#202', rol: 'Midlaner/Jungla', campeon: 'Ahri' },
       { nombre: 'NoUlteogord4s#UPDT', rol: 'Jungla/Support', campeon: 'Lee Sin' },
-      { nombre: 'Æsir BLOODAXE', rol: 'BotLane', campeon: 'Jinx' },
+      { nombre: 'Æsir BLOODAXE', rol: 'BotLane', campeon: 'Varus' },
       { nombre: 'UPDT LEOOO7#1203', rol: 'Jungla', campeon: 'Vi' },
       { nombre: 'Dark Star#UPDT', rol: 'Botlane/Toplaner', campeon: 'Darius' },
       { nombre: 'UPDT KENNY#777', rol: 'Midlaner', campeon: 'Zed' },
@@ -260,12 +260,13 @@
       { nombre: 'UPDT LUIS#321', rol: 'ADC', campeon: 'Jhin' },
       { nombre: 'UPDT MARIO#456', rol: 'Toplaner', campeon: 'Camille' }
     ];
+
     // Configuración de votos y reinicio
-  let votos = {};
-  let lastReset = null;
-  let winnerDay = null;
+    let votos = {};
+    let lastReset = null;
+    let winnerDay = null;
     const RESET_DAYS = 90; // 3 meses
-    const WINNER_DAY = 1; // 1 día
+
     // Calcular fecha de reinicio
     function getNextResetDate() {
       if (!lastReset) {
@@ -291,55 +292,57 @@
         .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
         .slice(0, n);
     }
-      function getTopN(n) {
-        return miembros
-          .map(m => ({...m, votos: votos[m.nombre] || 0}))
-          .sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre))
-          .slice(0, n);
-      }
 
-      // Sincronizar votos y reset con Firestore
-      async function syncFromFirebase() {
-        try {
-          votos = await getVotosGlobal();
-        } catch (e) {
-          votos = JSON.parse(localStorage.getItem('updt_votos') || '{}');
-        }
-        try {
-          const resetInfo = await getResetInfo();
-          lastReset = resetInfo?.lastReset || null;
-          winnerDay = resetInfo?.winnerDay || null;
-        } catch (e) {
-          lastReset = localStorage.getItem('updt_lastreset') || null;
-          winnerDay = localStorage.getItem('updt_winnerday') || null;
-        }
-        // No llamar a renderTop3 aquí, se llamará después de sync y checkReset
-      }
-      async function guardarVotosFirebase() {
-        await setVotosGlobal(votos);
-      }
-      async function guardarResetFirebase() {
-        await setResetInfo({ lastReset, winnerDay });
-      }
-    let startIdx = 0;
-    async function renderTop3() {
-      const cont = document.getElementById('top-miembros');
-      cont.innerHTML = '';
-      // Usar votos locales si no hay datos de Firebase
-      if (!votos || Object.keys(votos).length === 0) {
+    // Sincronizar votos y reset con Firestore
+    async function syncFromFirebase() {
+      try {
+        votos = await getVotosGlobal();
+      } catch (e) {
         votos = JSON.parse(localStorage.getItem('updt_votos') || '{}');
       }
+      try {
+        const resetInfo = await getResetInfo();
+        lastReset = resetInfo?.lastReset || null;
+        winnerDay = resetInfo?.winnerDay || null;
+      } catch (e) {
+        lastReset = localStorage.getItem('updt_lastreset') || null;
+        winnerDay = localStorage.getItem('updt_winnerday') || null;
+      }
+    }
+    async function guardarVotosFirebase() {
+      await setVotosGlobal(votos);
+      localStorage.setItem('updt_votos', JSON.stringify(votos));
+    }
+    async function guardarResetFirebase() {
+      await setResetInfo({ lastReset, winnerDay });
+      localStorage.setItem('updt_lastreset', lastReset);
+      localStorage.setItem('updt_winnerday', typeof winnerDay === 'string' ? winnerDay : JSON.stringify(winnerDay));
+    }
+
+    let startIdx = 0;
+
+    async function renderTop3() {
+      const cont = document.getElementById('top-miembros');
+      if (!cont) return;
+      cont.innerHTML = '';
+
       // Ganador fijo si corresponde
       let winner = null;
       if (winnerDay) {
         winner = typeof winnerDay === 'string' ? JSON.parse(winnerDay) : winnerDay;
       }
+
+      const itemsPerPage = 3;
+      const start = startIdx * itemsPerPage;
+      const end = start + itemsPerPage;
+
       let top;
-      if (winner && winner.until > Date.now()) {
-        top = [winner.miembro, ...getTopN(3).filter(m => m.nombre !== winner.miembro.nombre)].slice(0,3);
+      if (winner && winner.until > Date.now() && startIdx === 0) {
+        top = [winner.miembro, ...getTopN(3).filter(m => m.nombre !== winner.miembro.nombre)].slice(0, itemsPerPage);
       } else {
         top = getTopN(3 + startIdx).slice(startIdx, startIdx+3);
       }
+
       // Flechas navegación
       const nav = document.createElement('div');
       nav.className = 'd-flex justify-content-between align-items-center mb-2 px-2';
@@ -349,13 +352,21 @@
         <button class="btn btn-ranking-arrow" id="next-miembros" aria-label="Siguiente"><svg width="28" height="28" fill="#00c3ff" viewBox="0 0 24 24"><path d="M8.5 5a1 1 0 0 1 .7 1.7l-4.4 4.6 4.4 4.6A1 1 0 1 1 7.1 16.3l-5.1-5.3a1 1 0 0 1 0-1.4l5.1-5.3A1 1 0 0 1 8.5 5z" transform="scale(-1,1) translate(-24,0)"/></svg></button>
       `;
       cont.appendChild(nav);
+
       // Mostrar top 3
       const row = document.createElement('div');
       row.className = 'row row-cols-1 row-cols-md-3 g-3 w-100';
       top.forEach((m, idx) => {
         const card = document.createElement('div');
         card.className = 'col';
-        let crown = idx === 0 ? '<span class="crown-icon" title="Top 1"><svg width="32" height="32" viewBox="0 0 24 24" fill="#ffd700"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>' : '';
+        let crown = '';
+        if(idx === 0) {
+          crown = '<span class="crown-icon" title="Top 1"><svg width="32" height="32" viewBox="0 0 24 24" fill="#ffd700"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>';
+        } else if(idx === 1) {
+          crown = '<span class="crown-icon" title="Top 2"><svg width="32" height="32" viewBox="0 0 24 24" fill="#c0c0c0"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>';
+        } else if(idx === 2) {
+          crown = '<span class="crown-icon" title="Top 3"><svg width="32" height="32" viewBox="0 0 24 24" fill="#cd7f32"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>';
+        }
         card.innerHTML = `
           <div class="card bg-ranking border-3 border-primary h-100 animate__animated animate__fadeInUp position-relative ${idx===0?'shadow-lg border-warning':''}">
             <div class="card-body text-center">
@@ -373,6 +384,7 @@
         row.appendChild(card);
       });
       cont.appendChild(row);
+
       // Flechas
       document.getElementById('prev-miembros').onclick = () => {
         if (startIdx > 0) { startIdx--; renderTop3(); }
@@ -380,6 +392,7 @@
       document.getElementById('next-miembros').onclick = () => {
         if (startIdx < miembros.length - 3) { startIdx++; renderTop3(); }
       };
+
       // Deshabilitar botón si ya votó hoy
       document.querySelectorAll('.votar-btn').forEach(btn => {
         const lastVote = localStorage.getItem('updt_lastvote_' + btn.dataset.miembro);
@@ -393,10 +406,11 @@
           renderTop3();
         };
       });
+
       // Actualizar contador cada minuto
       setTimeout(renderTop3, 60000);
     }
-    // Reinicio de votos cada 3 meses
+
     // Estilos visuales para ranking
     const style = document.createElement('style');
     style.innerHTML = `
@@ -414,6 +428,13 @@
       .text-ranking {
         color: #00c3ff;
         text-shadow: 0 0 8px #00c3ff99;
+      }
+      .card-text, .card .mb-2, .card .fw-semibold {
+        color: #e7c873 !important;
+        text-shadow: 0 0 4px #000, 0 0 2px #1e90ff99;
+      }
+      .card .fw-semibold {
+        color: #00ffe7 !important;
       }
       .crown-icon {
         position: absolute;
@@ -441,65 +462,49 @@
       }
     `;
     document.head.appendChild(style);
-    function checkReset() {
+
+    // Reinicio de votos cada 3 meses
+    async function checkReset() {
       const days = getDaysLeft();
       if (days <= 0) {
         // Guardar ganador
         const ganador = getTopN(1)[0];
-        winnerDay = JSON.stringify({miembro: ganador, until: Date.now() + 24*60*60*1000});
-        localStorage.setItem('updt_winnerday', winnerDay);
+        winnerDay = {miembro: ganador, until: Date.now() + 24*60*60*1000};
+        await guardarResetFirebase();
         // Reset votos y fecha
         votos = {};
-        localStorage.setItem('updt_votos', JSON.stringify(votos));
+        await guardarVotosFirebase();
         lastReset = new Date().toISOString();
-        localStorage.setItem('updt_lastreset', lastReset);
+        await guardarResetFirebase();
       } else if (winnerDay) {
-        const w = JSON.parse(winnerDay);
+        const w = typeof winnerDay === 'string' ? JSON.parse(winnerDay) : winnerDay;
         if (w.until < Date.now()) {
           winnerDay = null;
-          localStorage.removeItem('updt_winnerday');
+          await guardarResetFirebase();
         }
       }
-      async function checkReset() {
-        const days = getDaysLeft();
-        if (days <= 0) {
-          // Guardar ganador
-          const ganador = getTopN(1)[0];
-          winnerDay = {miembro: ganador, until: Date.now() + 24*60*60*1000};
-          await guardarResetFirebase();
-          // Reset votos y fecha
-          votos = {};
-          await guardarVotosFirebase();
-          lastReset = new Date().toISOString();
-          await guardarResetFirebase();
-        } else if (winnerDay) {
-          const w = winnerDay;
-          if (w.until < Date.now()) {
-            winnerDay = null;
-            await guardarResetFirebase();
-          }
-        }
-      }
-      // Inicializar la app correctamente
-      (async function(){
-        try {
-          await syncFromFirebase();
-          await checkReset();
-        } catch (error) {
-          console.error('Error inicializando la app:', error);
-        }
-        // Siempre renderizar aunque falle la sync
-        renderTop3();
-      })();
-      setInterval(async () => {
-        try {
-          await checkReset();
-          await renderTop3();
-        } catch (error) {
-          console.error('Error actualizando datos:', error);
-        }
-      }, 60000);
     }
+
+    // Inicializar la app correctamente
+    (async function(){
+      try {
+        await syncFromFirebase();
+        await checkReset();
+      } catch (error) {
+        console.error('Error inicializando la app:', error);
+      }
+      // Siempre renderizar aunque falle la sync
+      renderTop3();
+    })();
+
+    setInterval(async () => {
+      try {
+        await checkReset();
+        await renderTop3();
+      } catch (error) {
+        console.error('Error actualizando datos:', error);
+      }
+    }, 60000);
   </script>
 </body>
 </html>
