@@ -17,6 +17,9 @@
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- =====================
+         ESTILOS PERSONALIZADOS
+    ====================== -->
     <style>
       body {
         background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
@@ -66,6 +69,7 @@
         color: #e7c873;
         text-shadow: 0 1px 2px #000;
       }
+      /* Responsive */
       @media (max-width: 768px) {
         .wildrift-header {
           padding: 1rem 0 0.5rem 0;
@@ -239,7 +243,9 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
     <script>
-    // Modo oscuro/tema personalizable
+    // =====================
+    // 1. MODO OSCURO
+    // =====================
     const btnDark = document.getElementById('toggle-dark');
     btnDark.addEventListener('click', () => {
       document.body.classList.toggle('bg-dark');
@@ -247,13 +253,15 @@
       btnDark.textContent = document.body.classList.contains('bg-dark') ? '☀️' : '🌙';
     });
 
-    // Top 3 miembros con votos persistentes (1 vez al día)
+    // =====================
+    // 2. DATOS DE MIEMBROS
+    // =====================
     const miembros = [
       { nombre: 'shinji#eva01', rol: 'Toplaner/Support', campeon: 'Garen' },
       { nombre: 'ABASHTHET#202', rol: 'Midlaner/Jungla', campeon: 'Ahri' },
       { nombre: 'NoUlteogord4s#UPDT', rol: 'Jungla/Support', campeon: 'Lee Sin' },
       { nombre: 'Æsir BLOODAXE', rol: 'BotLane', campeon: 'Varus' },
-      { nombre: 'UPDT LEOOO7#1203', rol: 'Jungla', campeon: 'Vi' },
+      { nombre: 'UPDT LEO007#1203', rol: 'Jungla', campeon: 'Vi' },
       { nombre: 'Dark Star#UPDT', rol: 'Botlane/Toplaner', campeon: 'Darius' },
       { nombre: 'UPDT KENNY#777', rol: 'Midlaner', campeon: 'Zed' },
       { nombre: 'UPDT SANTI#999', rol: 'Support', campeon: 'Thresh' },
@@ -261,13 +269,15 @@
       { nombre: 'UPDT MARIO#456', rol: 'Toplaner', campeon: 'Camille' }
     ];
 
-    // Configuración de votos y reinicio
+    // =====================
+    // 3. VOTOS Y REINICIO
+    // =====================
     let votos = {};
     let lastReset = null;
     let winnerDay = null;
-    const RESET_DAYS = 90; // 3 meses
+    const RESET_DAYS = 30; // 1 mes
 
-    // Calcular fecha de reinicio
+    // Utilidades de fecha
     function getNextResetDate() {
       if (!lastReset) {
         const now = new Date();
@@ -293,7 +303,9 @@
         .slice(0, n);
     }
 
-    // Sincronizar votos y reset con Firestore
+    // =====================
+    // 4. FIREBASE SYNC
+    // =====================
     async function syncFromFirebase() {
       try {
         votos = await getVotosGlobal();
@@ -319,8 +331,10 @@
       localStorage.setItem('updt_winnerday', typeof winnerDay === 'string' ? winnerDay : JSON.stringify(winnerDay));
     }
 
+    // =====================
+    // 5. RENDER RANKING TOP 3
+    // =====================
     let startIdx = 0;
-
     async function renderTop3() {
       const cont = document.getElementById('top-miembros');
       if (!cont) return;
@@ -333,9 +347,14 @@
       }
 
       const itemsPerPage = 3;
-      const start = startIdx * itemsPerPage;
-      const end = start + itemsPerPage;
-
+      // Obtener el top 3 global para asignar coronas y marcos
+      let topGlobal;
+      if (winner && winner.until > Date.now() && startIdx === 0) {
+        topGlobal = [winner.miembro, ...getTopN(3).filter(m => m.nombre !== winner.miembro.nombre)].slice(0, 3);
+      } else {
+        topGlobal = getTopN(3);
+      }
+      // Obtener la página actual de miembros
       let top;
       if (winner && winner.until > Date.now() && startIdx === 0) {
         top = [winner.miembro, ...getTopN(3).filter(m => m.nombre !== winner.miembro.nombre)].slice(0, itemsPerPage);
@@ -360,15 +379,23 @@
         const card = document.createElement('div');
         card.className = 'col';
         let crown = '';
-        if(idx === 0) {
+        let borderClass = 'border-primary';
+        let shadowClass = '';
+        // Asignar corona y marco solo si el miembro está en el top 3 global
+        const globalIdx = topGlobal.findIndex(t => t.nombre === m.nombre);
+        if(globalIdx === 0) {
           crown = '<span class="crown-icon" title="Top 1"><svg width="32" height="32" viewBox="0 0 24 24" fill="#ffd700"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>';
-        } else if(idx === 1) {
+          borderClass = 'border-warning';
+          shadowClass = 'shadow-lg';
+        } else if(globalIdx === 1) {
           crown = '<span class="crown-icon" title="Top 2"><svg width="32" height="32" viewBox="0 0 24 24" fill="#c0c0c0"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>';
-        } else if(idx === 2) {
+          borderClass = 'border-silver';
+        } else if(globalIdx === 2) {
           crown = '<span class="crown-icon" title="Top 3"><svg width="32" height="32" viewBox="0 0 24 24" fill="#cd7f32"><path d="M2 7l5 7 5-7 5 7 5-7v13H2z"/></svg></span>';
+          borderClass = 'border-bronze';
         }
         card.innerHTML = `
-          <div class="card bg-ranking border-3 border-primary h-100 animate__animated animate__fadeInUp position-relative ${idx===0?'shadow-lg border-warning':''}">
+          <div class="card bg-ranking border-3 ${borderClass} h-100 animate__animated animate__fadeInUp position-relative ${shadowClass}">
             <div class="card-body text-center">
               ${crown}
               <h5 class="card-title mb-1 fw-bold text-ranking">${m.nombre}</h5>
@@ -411,7 +438,9 @@
       setTimeout(renderTop3, 60000);
     }
 
-    // Estilos visuales para ranking
+    // =====================
+    // 6. ESTILOS JS PARA RANKING
+    // =====================
     const style = document.createElement('style');
     style.innerHTML = `
       .bg-ranking {
@@ -420,6 +449,15 @@
         border-width: 2.5px !important;
         min-height: 260px;
         transition: box-shadow 0.3s, border-color 0.3s;
+      }
+      .border-warning {
+        border-color: #ffd700 !important;
+      }
+      .border-silver {
+        border-color: #c0c0c0 !important;
+      }
+      .border-bronze {
+        border-color: #cd7f32 !important;
       }
       .bg-ranking.shadow-lg {
         box-shadow: 0 0 32px 0 #00c3ff55, 0 0 0 4px #ffd70099;
@@ -463,7 +501,9 @@
     `;
     document.head.appendChild(style);
 
-    // Reinicio de votos cada 3 meses
+    // =====================
+    // 7. REINICIO DE VOTOS
+    // =====================
     async function checkReset() {
       const days = getDaysLeft();
       if (days <= 0) {
@@ -485,7 +525,9 @@
       }
     }
 
-    // Inicializar la app correctamente
+    // =====================
+    // 8. INICIALIZACIÓN APP
+    // =====================
     (async function(){
       try {
         await syncFromFirebase();
@@ -505,6 +547,6 @@
         console.error('Error actualizando datos:', error);
       }
     }, 60000);
-  </script>
+    </script>
 </body>
 </html>
